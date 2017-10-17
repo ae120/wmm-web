@@ -1,0 +1,17 @@
+{
+    "name": "WM Web Api",
+    "type": "project",
+    "description": "Web api base on workerman",
+    "autoload": {
+        "psr-4": {"": "src/"}
+    },
+    "require": {
+	"php": ">=5.3.9",
+        "workerman/workerman": "^3.5",
+        "monolog/monolog": "1.0.*",
+        "symfony/http-foundation": "2.8.*",
+        "symfony/routing": "2.8.*",
+        "symfony/config": "2.8.*",
+        "symfony/yaml": "2.8.*"
+    }
+}

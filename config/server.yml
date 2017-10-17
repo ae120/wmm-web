@@ -1,0 +1,10 @@
+# 修改此配置文件, 必须重启才能生效
+env: dev
+host: 127.0.0.1
+port: 8010
+worker: 4
+hostnames:
+  - name: www.test.com
+    root: /Users/lvshuang/newpm/api
+  - name: www.test1.com
+    root: /Users/lvshuang/newpm/api1
