@@ -18,6 +18,7 @@ $workerCount = isset($serverConfig['worker']) ? $serverConfig['worker'] : 4;
 $hostnames = isset($serverConfig['hostnames']) ? $serverConfig['hostnames'] : [];
 
 $web = new WebServer("http://{$host}:{$port}");
+//$web->reusePort = true;
 $web->count = $workerCount;
 foreach ($hostnames as $hostname) {
     $web->addRoot($hostname['name'], $hostname['root']);

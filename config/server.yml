@@ -2,7 +2,7 @@
 env: dev
 host: 127.0.0.1
 port: 8010
-worker: 4
+worker: 6
 hostnames:
   - name: www.test.com
     root: /Users/lvshuang/newpm/api

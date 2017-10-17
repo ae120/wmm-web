@@ -25,7 +25,7 @@ class WebServer extends \Workerman\WebServer
         $index = $rootDir . '/index.php';
         if (!file_exists($index)) {
             Http::header('HTTP/1.1 404 Not Found');
-            $connection->close('<h1>400 Bad Request</h1>');
+            $connection->close('<h1>404 Not Found</h1>');
             return;
         }
         $indexFile = realpath($index);

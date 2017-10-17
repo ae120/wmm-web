@@ -1,51 +1,56 @@
 <?php
-use Symfony\Component\Config\FileLocator;
+// Yml load 组件
+use Symfony\Component\Config\Resource\FileResource;
+use Symfony\Component\Routing\Route;
 
 // 引入路由组件
-use Symfony\Component\Routing\Loader\YamlFileLoader;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
-use Symfony\Component\Routing\Generator\UrlGenerator;
 
 // 引入HTTP Request组件
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-$locator = new FileLocator(array(__DIR__ . "/config"));
-$loader = new YamlFileLoader($locator);
-$collection = $loader->load('routes.yml');
-
 $request = Request::createFromGlobals();
-$context = new RequestContext(
-    $request->getBaseUrl(),
-    $request->getMethod(),
-    $request->getHost(),
-    $request->getScheme(),
-    $request->getPort(),
-    443,
-    $request->getPathInfo()
-);
-$matcher = new UrlMatcher($collection, $context);
-$urlGenerator = new UrlGenerator($collection, $context);
+$context = new RequestContext();
+$context->fromRequest($request);
 
-$uri = $request->server->get('REQUEST_URI');
-$position = strpos($uri, '?');
-if ($position!== false) {
-    $uri = substr($uri, 0, $position);
+static $matcher = null;
+
+if (is_null($matcher)) {
+    $collection = new \Symfony\Component\Routing\RouteCollection();
+    $collection->addResource(new FileResource(realpath(__DIR__ . '/src/Config/Routes.php')));
+    $routeConfig = (array) new \Config\Routes();
+    foreach ($routeConfig as $name => $config) {
+        $defaults = isset($config['defaults']) ? $config['defaults'] : array();
+        $requirements = isset($config['requirements']) ? $config['requirements'] : array();
+        $options = isset($config['options']) ? $config['options'] : array();
+        $host = isset($config['host']) ? $config['host'] : '';
+        $schemes = isset($config['schemes']) ? $config['schemes'] : array();
+        $methods = isset($config['methods']) ? $config['methods'] : array();
+        $condition = isset($config['condition']) ? $config['condition'] : null;
+        $route = new Route($config['path'], $defaults, $requirements, $options, $host, $schemes, $methods, $condition);
+        $collection->add($name, $route);
+    }
+    $matcher = new UrlMatcher($collection, $context);
 }
 
+$uri = $request->getPathInfo();
 try {
     $matches = $matcher->match($uri);
 } catch (\Symfony\Component\Routing\Exception\ResourceNotFoundException $ne) {
     $response = new JsonResponse(['code' => 404, 'message' => $ne->getMessage()]);
     $response->send();
+    return ;
 } catch (\Symfony\Component\Routing\Exception\MethodNotAllowedException $e) {
     $response = new JsonResponse(['code' => 405, 'message' => 'Method now allowed']);
     $response->send();
+    return ;
 } catch (\Exception $e) {
     $response = new JsonResponse(['code' => 500, 'message' => $e->getMessage()]);
     $response->send();
+    return ;
 }
 
 try {
