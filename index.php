@@ -7,14 +7,22 @@ use Symfony\Component\Routing\Route;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
 
-// 引入HTTP Request组件
-use Symfony\Component\HttpFoundation\Request;
+// 引入 Symfony Http Response组件
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-$request = Request::createFromGlobals();
-$context = new RequestContext();
-$context->fromRequest($request);
+use Common\HttpRequest;
+
+$context = new RequestContext(
+    HttpRequest::getBaseUrl(),
+    HttpRequest::getMethod(),
+    HttpRequest::getHost(),
+    HttpRequest::getScheme(),
+    HttpRequest::getPort(),
+    443,
+    HttpRequest::getPathInfo(),
+    HttpRequest::getQueryString()
+);
 
 static $matcher = null;
 
@@ -36,7 +44,8 @@ if (is_null($matcher)) {
     $matcher = new UrlMatcher($collection, $context);
 }
 
-$uri = $request->getPathInfo();
+$uri = HttpRequest::getPathInfo();
+
 try {
     $matches = $matcher->match($uri);
 } catch (\Symfony\Component\Routing\Exception\ResourceNotFoundException $ne) {
@@ -68,20 +77,20 @@ try {
     $method = $classReflection->getMethod($action);
     $passParams = [];
     foreach ($method->getParameters() as $parameter) {
-        if ($class = $parameter->getClass()) {
-            if ($class->getName() == 'Symfony\Component\HttpFoundation\Request') {
-                $passParams[$parameter->getName()] = $request;
-            } else {
-                throw new \Exception(sprintf("Un support class %s in action inject", $class), 500);
-            }
-        } else {
-            if (!isset($matches[$parameter->getName()]) && !$parameter->isDefaultValueAvailable()) {
-                throw new \Exception(sprintf("Param %s need set a value in route", $parameter->getName()));
-            }
-            if (isset($matches[$parameter->getName()])) {
-                $passParams[$parameter->getName()] = $matches[$parameter->getName()];
-            }
+//        if ($class = $parameter->getClass()) {
+//            if ($class->getName() == 'Common\HttpRequest') {
+//                $passParams[$parameter->getName()] = HttpRequest;
+//            } else {
+//                throw new \Exception(sprintf("Un support class %s in action inject", $class), 500);
+//            }
+//        } else {
+        if (!isset($matches[$parameter->getName()]) && !$parameter->isDefaultValueAvailable()) {
+            throw new \Exception(sprintf("Param %s need set a value in route", $parameter->getName()), 500);
         }
+        if (isset($matches[$parameter->getName()])) {
+            $passParams[$parameter->getName()] = $matches[$parameter->getName()];
+        }
+//        }
     }
 
     $response = call_user_func_array([$controllerInstance, $action], $passParams);
@@ -90,5 +99,7 @@ try {
     }
     $response->send();
 } catch (\Exception $e) {
-    $response = new JsonResponse(['code' => $e->getCode(), 'message' => $e->getMessage()]);
+    $code = $e->getCode() ? $e->getCode() : 500;
+    $response = new JsonResponse(['code' => $code, 'message' => $e->getMessage()]);
+    $response->send();
 }
